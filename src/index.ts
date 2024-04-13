@@ -3,13 +3,13 @@ import './scss/styles.scss';
 import {LarekAPI} from "./components/LarekAPI";
 import {API_URL, CDN_URL, PaymentMethods} from "./utils/constants";
 import {EventEmitter} from "./components/base/events";
-import {AppState, CatalogChangeEvent, Product} from "./components/AppData";
+import {AppState, CatalogChangeEvent} from "./components/AppData";
 import {Page} from "./components/Page";
 import {cloneTemplate, createElement, ensureElement} from "./utils/utils";
 import {Modal} from "./components/common/Modal";
-import {IContactForm, IDeliveryForm, IOrder} from "./types";
+import {IContactForm, IDeliveryForm, IOrder, IProduct} from "./types";
 import { Card } from './components/Card';
-import { Basket } from './components/Basket';
+import { Basket, ProductInBasket } from './components/Basket';
 import { DeliveryForm, ContactForm } from './components/Order';
 import { Success } from './components/Success';
 
@@ -54,11 +54,11 @@ events.on<CatalogChangeEvent>('items:changed', () => {
 });
 
 // Открытие товара
-events.on('card:select', (item: Product) => {
+events.on('card:select', (item: IProduct) => {
   appData.setPreview(item);
 });
 
-events.on('preview:changed', (item: Product) => {
+events.on('preview:changed', (item: IProduct) => {
   const card = new Card(cloneTemplate(cardPreviewTemplate), {
     onClick: () => {
       events.emit('product:add', item)
@@ -76,31 +76,42 @@ events.on('preview:changed', (item: Product) => {
 })
 
 // Добавление/удаление товара и обновление счетчика
-events.on('product:add', (item: Product) => {
+events.on('product:add', (item: IProduct) => {
   modal.close();
   appData.addToBasket(item);
 })
 
-events.on('product:delete', (item: Product) => appData.removeFromBasket(item));
+events.on('basket:remove', (item: IProduct) => {
+	appData.removeFromBasket(item);
+});
 
-events.on('basket:changed', (items: Product[]) => {
-  basket.items = items.map((item, index) => {
-    const card = new Card(cloneTemplate(cardBasketTemplate), {
-      onClick: () => {
-        events.emit('product:delete', item)
-      }
-    });
-    return card.render({
-      index: (index+1).toString(),
-      title: item.title,
-      price: item.price,
-    })
-  })
-  const total = items.reduce((total, item) => total + item.price, 0)
-  basket.total = total
-  appData.order.total = total;
-  basket.toggleButton(total === 0)
-})
+events.on('basket:changed', () => {
+	const basketItems = appData.basket.map((item, index) => {
+		// Создаем карточку товара в корзине
+		const productItem = new ProductInBasket(cloneTemplate(cardBasketTemplate), {
+			onClick: () => events.emit('basket:remove', item), // Добавляем обработчик события удаления товара
+		});
+
+		// Отрисовываем карточку товара и возвращаем ее HTML-представление
+		return productItem.render({
+			title: item.title,
+			price: item.price,
+			index: index + 1, // Устанавливаем индекс товара в корзине
+		});
+	});
+
+	// Получаем итоговую сумму корзины
+	const total = appData.getBasketTotal();
+
+	// Обновляем содержимое корзины
+	basket.render({
+		items: basketItems,
+		total: total || 0, // Если итоговая сумма равна 0, отображаем 0
+	});
+
+	// Обновляем состояние кнопки оформления заказа
+	basket.selected = basketItems.map((item) => item.title);
+});
 
 events.on('counter:changed', (item: string[]) => {
   page.counter = appData.basket.length;

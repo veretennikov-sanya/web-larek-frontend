@@ -18,8 +18,8 @@ export class Success extends Component<ISuccess> {
         }
     }
 
-    set total(value: string) {
-      this._total.textContent = `Списано ${value} синапсов`
+    set total(total: string) {
+      this._total.textContent = `Списано ${total} синапсов`
     }
 
 }

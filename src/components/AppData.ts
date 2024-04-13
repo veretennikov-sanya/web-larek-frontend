@@ -2,21 +2,13 @@ import {Model} from "./base/Model";
 import {IProduct, IOrder, IDeliveryForm, IAppState, FormErrors, IContactForm} from "../types";
 
 export type CatalogChangeEvent = {
-  catalog: Product[]
+  catalog: IProduct[]
 };
 
-export class Product extends Model<IProduct> {
-    id: string;
-    title: string;
-    price: number | null;
-    description: string;
-    category: string;
-    image: string;
-}
 
 export class AppState extends Model<IAppState> {
-  catalog: Product[];
-  basket: Product[] = [];
+  catalog: IProduct[];
+  basket: IProduct[] = [];
   order: IOrder = {
     payment: 'online',
     address: '',
@@ -45,23 +37,23 @@ export class AppState extends Model<IAppState> {
   }
 
   setCatalog(items: IProduct[]) {
-    this.catalog = items.map(item => new Product(item, this.events));
+    this.catalog = items;
     this.emitChanges('items:changed', { catalog: this.catalog});
   }
 
-  setPreview(item: Product) {
+  setPreview(item: IProduct) {
     this.preview = item.id;
     this.emitChanges('preview:changed', item);
   }
 
-  addToBasket(item: Product){
+  addToBasket(item: IProduct){
     if(this.basket.indexOf(item) < 0){
       this.basket.push(item);
       this.updateBasket();
     }
   }
 
-  removeFromBasket(item: Product) {
+  removeFromBasket(item: IProduct) {
     this.basket = this.basket.filter((it) => it != item);
     this.updateBasket();
   }
@@ -107,4 +99,9 @@ export class AppState extends Model<IAppState> {
     this.events.emit('formErrors:change', this.formErrors);
     return Object.keys(errors).length === 0;
   }
+
+  //общая сумма заказа в корзине
+  getBasketTotal() {
+		return this.basket.reduce((sum, item) => sum + item.price, 0);
+	}
 }

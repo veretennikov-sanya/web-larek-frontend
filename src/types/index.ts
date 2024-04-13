@@ -53,6 +53,11 @@ export interface IProduct {
   image: string;
 }
 
+// Порядковый номер в корзине
+export interface IProductInBasket extends IProduct {
+	index: number;
+}
+
 export interface IAppState {
   catalog: IProduct[];
   basket: IProduct[];
