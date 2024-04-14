@@ -1,91 +1,82 @@
-import {Component} from "./base/Component";
-import {createElement, ensureElement} from "./../utils/utils";
-import { IBasketView, IProductInBasket } from "../types";
-import {EventEmitter} from "./base/events";
+import { Component } from './base/Component';
+import { createElement, ensureElement } from './../utils/utils';
+import { IBasketView, IProductInBasket, IActions } from '../types';
+import { EventEmitter } from './base/events';
 
 export class Basket extends Component<IBasketView> {
-    protected _list: HTMLElement;
-    protected _total: HTMLElement;
-    protected _button: HTMLButtonElement;
+	protected _list: HTMLElement;
+	protected _total: HTMLElement;
+	protected _button: HTMLButtonElement;
 
-    constructor(container: HTMLElement, protected events: EventEmitter) {
-        super(container);
+	constructor(container: HTMLElement, protected events: EventEmitter) {
+		super(container);
 
-        this._list = ensureElement<HTMLElement>('.basket__list', this.container);
-        this._total = this.container.querySelector('.basket__price');
-        this._button = this.container.querySelector('.basket__button');
+		this._list = ensureElement<HTMLElement>('.basket__list', this.container);
+		this._total = this.container.querySelector('.basket__price');
+		this._button = this.container.querySelector('.basket__button');
 
-        if (this._button) {
-            this._button.addEventListener('click', () => {
-                events.emit('order:open');
-            });
-        }
+		if (this._button) {
+			this._button.addEventListener('click', () => {
+				events.emit('order:open');
+			});
+		}
 
-        this.items = [];
-        this._button.disabled = true;
-    }
+		this.items = [];
+		this._button.disabled = true;
+	}
 
-    set items(items: HTMLElement[]) {
-      if (items.length) {
-        this._list.replaceChildren(...items);
-      } else {
-        this._list.replaceChildren(createElement<HTMLParagraphElement>('p', {
-            textContent: 'Корзина пуста'
-        }));
-      }
-    }
-    set selected(items: string[]) {
-      if (items.length) {
-        // Если в корзине есть товары, разблокируем кнопку оформления заказа
-        this.setDisabled(this._button, false);
-      } else {
-        // Если корзина пуста, блокируем кнопку оформления заказа
-        this.setDisabled(this._button, true);
-      }
-    }
-  
-    // Сеттер для установки итоговой суммы корзины
-    set total(total: number) {
-      if (this._total) {
-        this.setText(this._total, `${total} синапсов`);
-      }
-    }
+	disableButton(value: string) {
+		this._button.setAttribute('disabled', value);
+	}
+
+	set items(items: HTMLElement[]) {
+		if (items.length) {
+			this._list.replaceChildren(...items);
+			this.setDisabled(this._button, false);
+		} else {
+			this._list.replaceChildren(
+				createElement<HTMLParagraphElement>('p', {
+					textContent: 'Корзина пуста',
+				})
+			);
+			this.disableButton('true');
+		}
+	}
+
+	set total(total: number) {
+		this.setText(this._total, `${total.toString()} синапсов`);
+	}
 }
 
-interface IProductBasketActions {
-	onClick: (event: MouseEvent) => void;
-}
-
-export class ProductInBasket extends Component<IProductInBasket> {
+export class BasketItem extends Component<IProductInBasket> {
 	protected _index: HTMLElement;
 	protected _title: HTMLElement;
 	protected _price: HTMLElement;
 	protected _button: HTMLButtonElement;
 
-	constructor(container: HTMLElement, actions?: IProductBasketActions) {
+	constructor(container: HTMLElement, index: number, action?: IActions) {
 		super(container);
-		this._title = container.querySelector(`.card__title`);
-		this._index = container.querySelector(`.basket__item-index`);
-		this._price = container.querySelector(`.card__price`);
-		this._button = container.querySelector(`.card__button`);
-
-		if (this._button) {
-			this._button.addEventListener('click', (evt) => {
-				this.container.remove();
-				actions?.onClick(evt);
-			});
+		this._index = ensureElement<HTMLElement>('.basket__item-index', container);
+		this.setText(this._index, index + 1);
+		this._title = ensureElement<HTMLElement>('.card__title', container);
+		this._price = ensureElement<HTMLElement>('.card__price', container);
+		this._button = container.querySelector('.card__button');
+		if (action?.onClick) {
+			if (this._button) {
+				this._button.addEventListener('click', action.onClick);
+			}
 		}
-	}
-
-	set title(value: string) {
-		this.setText(this._title, value);
 	}
 
 	set index(value: number) {
 		this.setText(this._index, value);
 	}
 
+	set title(value: string) {
+		this.setText(this._title, value);
+	}
+
 	set price(value: number) {
-		this.setText(this._price, value + ' синапсов');
+		this.setText(this._price, value);
 	}
 }

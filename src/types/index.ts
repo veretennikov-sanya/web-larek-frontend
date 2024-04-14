@@ -89,6 +89,7 @@ export interface IOrderResult {
 
 export interface ICard extends IProduct{
   index?: string;
+  buttonTitle? : string;
 }
 
 export interface IBasketView {
